@@ -3,8 +3,8 @@ import os
 import glob
 from time import time
 import cv2
-from skimage.measure import compare_ssim as ssim
-# from skimage.metrics import structural_similarity as ssim
+#from skimage.measure import compare_ssim as ssim
+from skimage.metrics import structural_similarity as ssim
 import argparse
 from model_DAT import *
 import warnings
@@ -26,7 +26,7 @@ def main():
     
     epochs = args.epoch_num
 
-    model_dir = "./%s/%s_layer_%d_lr_%.4f_ratio_%.2f" % (args.save_dir, args.model, args.layer_num, args.lr, args.sensing_rate)
+    model_dir = "./%s/%s_layer_%d_lr_%.5f_ratio_%.2f" % (args.save_dir, args.model, args.layer_num, args.lr, args.sensing_rate)
     checkpoint = torch.load("%s/net_params_%d.pth" % (model_dir, epochs), map_location=device)
     model.load_state_dict(checkpoint['net'])
 
@@ -82,7 +82,7 @@ def main():
             im_rec_rgb = cv2.cvtColor(Img_rec_yuv, cv2.COLOR_YCrCb2BGR)
             im_rec_rgb = np.clip(im_rec_rgb, 0, 255).astype(np.uint8)
             resultName = "./%s/%s" % (result_dir, test_name_split[1])
-            cv2.imwrite("%s_lr_%.4f_ratio_%.2f_PSNR_%.2f_SSIM_%.4f.png" % (
+            cv2.imwrite("%s_lr_%.5f_ratio_%.2f_PSNR_%.2f_SSIM_%.4f.png" % (
                 resultName, args.lr, args.sensing_rate, rec_PSNR, rec_SSIM), im_rec_rgb)
             del x_output
 

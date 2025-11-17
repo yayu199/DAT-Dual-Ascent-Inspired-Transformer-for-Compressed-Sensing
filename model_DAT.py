@@ -123,7 +123,7 @@ class BasicBlock(torch.nn.Module):
 
         self.lambda_step = nn.Parameter(torch.Tensor([0.5]))
 
-        self.cra = CrAttention(channels=31)
+        self.nonlo = CrAttention(channels=31)
         self.norm1 = LayerNorm(32, 'WithBias')
         self.norm2 = LayerNorm(32, 'WithBias')
         self.conv_forward = nn.Sequential(
@@ -159,7 +159,7 @@ class BasicBlock(torch.nn.Module):
 
         x = x - self.lambda_step *(PhiTPhi_fun(x,y, PhiWeight))
 
-        x_input = self.cra(x, z_)
+        x_input = self.nonlo(x, z_)
         x_input = self.v(torch.cat([x, x_input], 1))
         
         x = self.norm1(x_input)
@@ -178,7 +178,7 @@ class BasicBlock(torch.nn.Module):
         
         z_pre = z_cur
 
-        z_cur=self.cra(res,z_c)+z_cur
+        z_cur=self.nonlo(res,z_c)+z_cur
 
         return x,z_pre,z_cur
 
