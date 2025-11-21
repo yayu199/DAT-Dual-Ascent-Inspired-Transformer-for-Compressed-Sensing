@@ -5,10 +5,13 @@ from torch.nn import init
 from einops import rearrange
 import numbers
 
+k=32
+emb=32
+
 def PhiTPhi_fun(x,y, PhiW):
-    temp = F.conv2d(x, PhiW, padding=0,stride=32, bias=None)
+    temp = F.conv2d(x, PhiW, padding=0,stride=k, bias=None)
     temp = temp-y
-    temp = F.conv_transpose2d(temp, PhiW, stride=32)
+    temp = F.conv_transpose2d(temp, PhiW, stride=k)
     return temp
 
 def to_3d(x):
@@ -67,7 +70,7 @@ class CrAttention(torch.nn.Module):
         self.softmax = nn.Softmax(dim=-1)
         
         self.norm_x = LayerNorm(1, 'WithBias')
-        self.norm_z = LayerNorm(31, 'WithBias')
+        self.norm_z = LayerNorm(emb-1, 'WithBias')
 
         self.t = nn.Sequential(
             nn.Conv2d(in_channels=self.channels, out_channels=self.channels, kernel_size=1, stride=1, bias=True),
@@ -123,29 +126,29 @@ class BasicBlock(torch.nn.Module):
 
         self.lambda_step = nn.Parameter(torch.Tensor([0.5]))
 
-        self.nonlo = CrAttention(channels=31)
-        self.norm1 = LayerNorm(32, 'WithBias')
-        self.norm2 = LayerNorm(32, 'WithBias')
+        self.nonlo = CrAttention(channels=emb-1)
+        self.norm1 = LayerNorm(emb, 'WithBias')
+        self.norm2 = LayerNorm(emb, 'WithBias')
         self.conv_forward = nn.Sequential(
-            nn.Conv2d(32, 32 * 4, 1, 1, bias=False),
+            nn.Conv2d(emb, emb * 4, 1, 1, bias=False),
             nn.GELU(),
-            nn.Conv2d(32 * 4, 32 * 4, 3, 1, 1, bias=False, groups=32 * 4),
+            nn.Conv2d(emb * 4, emb * 4, 3, 1, 1, bias=False, groups=emb * 4),
             nn.GELU(),
-            nn.Conv2d(32 * 4, 32, 1, 1, bias=False),
+            nn.Conv2d(emb * 4, emb, 1, 1, bias=False),
         )
         self.conv_backward = nn.Sequential(
-            nn.Conv2d(32, 32 * 4, 1, 1, bias=False),
+            nn.Conv2d(emb, emb * 4, 1, 1, bias=False),
             nn.GELU(),
-            nn.Conv2d(32 * 4, 32 * 4, 3, 1, 1, bias=False, groups=32 * 4),
+            nn.Conv2d(emb * 4, emb * 4, 3, 1, 1, bias=False, groups=emb * 4),
             nn.GELU(),
-            nn.Conv2d(32 * 4, 32, 1, 1, bias=False),
+            nn.Conv2d(emb * 4, emb, 1, 1, bias=False),
         )
         
-        self.v = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=1, stride=1, bias=True)
+        self.v = nn.Conv2d(in_channels=emb, out_channels=emb, kernel_size=1, stride=1, bias=True)
         self.w = nn.Sequential(
-            nn.Conv2d(31, 31, kernel_size=3, stride=1, padding=1, bias=False, groups=31),
+            nn.Conv2d(emb-1, emb-1, kernel_size=3, stride=1, padding=1, bias=False, groups=emb-1),
             nn.GELU(),
-            nn.Conv2d(31, 31, kernel_size=3, stride=1, padding=1, bias=False, groups=31),
+            nn.Conv2d(emb-1, emb-1, kernel_size=3, stride=1, padding=1, bias=False, groups=emb-1),
         )
 
         
@@ -188,7 +191,7 @@ class DAT(torch.nn.Module):
         super(DAT, self).__init__()
         onelayer = []
         self.LayerNo = LayerNo
-        self.patch_size = 32
+        self.patch_size = k
         self.n_input = int(sensing_rate * 1024)
 
         for i in range(LayerNo):
@@ -196,8 +199,8 @@ class DAT(torch.nn.Module):
 
         self.Phiweight = nn.Parameter(init.xavier_normal_(torch.Tensor(self.n_input, 1, self.patch_size, self.patch_size)))
         self.fcs = nn.ModuleList(onelayer)
-        self.fe = nn.Conv2d(1, 31, 3, padding=1, bias=True)
-        self.fe2 = nn.Conv2d(1, 31, 3, padding=1, bias=True)
+        self.fe = nn.Conv2d(1, emb-1, 3, padding=1, bias=True)
+        self.fe2 = nn.Conv2d(1, emb-1, 3, padding=1, bias=True)
 
     def forward(self, x):
 
